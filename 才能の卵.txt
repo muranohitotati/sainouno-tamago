@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>才能の卵：潜在能力発見ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
+        body {
+            font-family: 'Kosugi Maru', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+        .main-container {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .header-bg {
+            background-image: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        }
+        .btn-primary {
+            background-image: linear-gradient(45deg, #34d399, #059669);
+            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(52, 211, 153, 0.5);
+        }
+        /* カスタムスタイル: スコア選択肢 */
+        .score-input:checked + label {
+            background-color: #10b981;
+            color: white;
+            box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4);
+            border-color: #059669;
+        }
+        .score-label {
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        .score-label:hover {
+            background-color: #ecfdf5;
+        }
+        /* 結果カード */
+        .result-card {
+            border-left: 5px solid #10b981;
+            background-color: #f0fff4; 
+        }
+        .progress-bar-bg {
+            background-color: #e5e7eb;
+            height: 10px;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background-color: #059669;
+            transition: width 1.0s ease-out;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center min-h-screen">
+
+    <div class="main-container p-6 sm:p-8 max-w-xl w-full mx-auto my-8">
+        <header class="header-bg p-6 rounded-t-xl text-center -mx-6 -mt-6 mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-wider">
+                🥚 才能の卵
+            </h1>
+            <p class="text-white text-opacity-80 mt-1">〜自分でも気づかない潜在能力を発見し、育む〜</p>
+        </header>
+
+        <div id="start-screen" class="text-center space-y-6">
+            <p class="text-lg leading-relaxed">あなたの潜在的な強みを6つのカテゴリで深く診断します。この診断結果は、あなたが次に取るべきアクションを示唆する羅針盤となるでしょう。</p>
+            <p class="text-gray-600">全15問。直感に従って正直にお答えください。</p>
+            <button id="start-button" class="btn-primary w-full py-3 rounded-xl font-bold text-xl shadow-lg">
+                診断を開始する (全15問)
+            </button>
+        </div>
+
+        <div id="quiz-screen" class="hidden space-y-6">
+            <h2 class="text-xl font-bold text-gray-700 mb-4" id="question-header"></h2>
+            <div id="quiz-container" class="space-y-6">
+                <!-- Questions will be loaded here -->
+            </div>
+            
+            <div class="flex justify-between items-center pt-4">
+                <p id="progress-text" class="text-sm text-gray-500 font-semibold"></p>
+                <button id="next-button" class="btn-primary py-2 px-8 rounded-full font-bold shadow-md opacity-50 cursor-not-allowed" disabled>
+                    次へ
+                </button>
+                <button id="finish-button" class="btn-primary py-2 px-8 rounded-full font-bold shadow-md hidden">
+                    結果を見る
+                </button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="hidden text-center space-y-8 py-4">
+            <h2 class="text-2xl font-extrabold text-gray-700">診断結果: 才能のロードマップ</h2>
+            
+            <!-- スコアグラフ -->
+            <div class="bg-white p-5 rounded-lg shadow-inner">
+                <h3 class="text-xl font-bold mb-4 text-green-700">あなたの潜在能力スコア</h3>
+                <div id="score-graph-container" class="space-y-4 text-left">
+                    <!-- Progress bars will be loaded here -->
+                </div>
+            </div>
+
+            <!-- メイン才能 -->
+            <div class="result-card p-6 rounded-lg shadow-lg">
+                <p class="text-xl font-bold text-green-600 mb-2">🏆 第1位の才能の卵</p>
+                <p id="main-talent-title" class="text-4xl font-black text-green-800 mb-4"></p>
+                <p id="main-talent-description" class="text-md text-gray-700"></p>
+            </div>
+            
+            <!-- 副業ランキング (新規追加) -->
+            <div id="side-job-recommendations" class="bg-yellow-50 p-5 rounded-lg text-left shadow-md border border-yellow-300">
+                <h3 class="text-xl font-bold border-b pb-2 text-yellow-700 mb-4">💰 才能を活かせる副業ランキングTOP3</h3>
+                <div id="side-job-container" class="space-y-4">
+                    <!-- Recommendations will be loaded here -->
+                </div>
+            </div>
+
+            <!-- サブ才能のランキング -->
+            <div class="bg-gray-100 p-5 rounded-lg text-left shadow-md">
+                <h3 class="text-xl font-bold border-b pb-2 text-green-700 mb-4">✨ 上位3つの才能と育成ヒント</h3>
+                <div id="ranking-advice-container" class="space-y-6">
+                    <!-- Ranked advice will be loaded here -->
+                </div>
+            </div>
+            
+            <div class="pt-6 border-t border-gray-200">
+                <p class="text-lg font-semibold mb-4">発見した才能を収益に変えるための無料ツール</p>
+                <a href="https://lin.ee/IXipnTvE" target="_blank" class="inline-block py-3 px-8 rounded-full font-bold text-white shadow-xl transition-all duration-300" style="background-color: #00B900; box-shadow: 0 4px 15px rgba(0, 185, 0, 0.4);">
+                    無料ツールはこちらから
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 才能のカテゴリ定義 (6種類に増加) ---
+        const TALENTS = {
+            logic: { name: "論理的思考力", description: "物事を体系的に分析し、筋道を立てて考える能力。複雑な課題の構造を理解し、効率的な解決策を導き出す力に優れます。", advice: "仮説検証の訓練として、日常の疑問を「なぜ？」から深掘りする習慣をつけましょう。データ分析やプログラミングを学ぶことで、この才能は即戦力になります。" },
+            creativity: { name: "創造性・発想力", description: "既存の枠にとらわれず、新しいアイデアやコンセプトを生み出す能力。常識を打ち破るユニークな視点が強みです。", advice: "毎日一つ、全く違う分野のニュースや情報をインプットし、強制的に組み合わせてアイデアを出す練習をしましょう。アートやデザイン思考を学ぶことも有効です。" },
+            empathy: { name: "共感力・調和力", description: "他者の感情や意図を深く理解し、集団内での調和や最適なコミュニケーションを実現する能力。", advice: "意図的に異なる意見を持つ人の話を聞き、その背景にある感情や価値観を理解する練習をしましょう。コーチングやファシリテーションスキルを学ぶことで、チームの力を最大限に引き出せます。" },
+            execution: { name: "実行力・推進力", description: "目標達成に向けて、計画を立て、迷わず迅速に行動し続ける能力。行動の速さが成功を引き寄せます。", advice: "大きな目標を「今週できること」「今日できること」の小さなタスクに分解し、毎日必ず実行する習慣をつけましょう。PDCAサイクルを高速で回すことが成長の鍵です。" },
+            strategy: { name: "戦略的思考力", description: "長期的な目標を設定し、限られた資源（時間、お金）を最も効果的に配分する計画を立てる能力。", advice: "成功事例だけでなく、失敗事例も分析し、「もし自分だったらどうするか」を常に考える訓練をしましょう。ビジネスモデルの分析や、チェス・囲碁などの戦略ゲームも才能を伸ばします。" },
+            resilience: { name: "精神的回復力", description: "失敗や予期せぬ困難に直面しても、すぐに立ち直り、前向きに再スタートを切れる心の強さ。", advice: "日々の小さな失敗を「データ収集」と捉え、感情的にならずに原因と対策を客観的に分析する習慣をつけましょう。質の高い睡眠と休息を確保し、心のエネルギーを充電する時間を大切にしてください。" },
+        };
+        
+        // --- 副業の推奨データ (トップ才能に基づいたランキング) ---
+        const SIDE_JOB_RECOMMENDATIONS = {
+            logic: [
+                { name: "データ分析・集計", reason: "大量の情報を効率的に整理・分析する能力を活かし、企業の意思決定をサポートできます。論理的なアプローチが成果に直結します。" },
+                { name: "システムテスト・デバッグ", reason: "細部にわたり矛盾やエラーを見つけ出す論理力を活かし、ソフトウェアの品質向上に貢献できます。正確性が評価されます。" },
+                { name: "技術系ドキュメント作成", reason: "複雑な内容を分かりやすく体系的に構造化する能力が求められます。マニュアルや解説記事の作成に適しています。" }
+            ],
+            creativity: [
+                { name: "Webデザイン・バナー制作", reason: "ユニークな発想と視覚的なセンスを活かし、クライアントの要望に応じた魅力的なビジュアルを作成できます。ポートフォリオが資産になります。" },
+                { name: "コンテンツ制作（動画/ブログ）", reason: "既存の枠にとらわれない企画力で、人々の興味を引くオリジナリティあふれるコンテンツを生み出せます。個人ブランディングにも繋がります。" },
+                { name: "ハンドメイド作品の販売", reason: "独自のセンスとアイデアを形にする能力を活かし、趣味を収益化できます。市場にない付加価値を生み出せます。" }
+            ],
+            empathy: [
+                { name: "オンライン秘書・サポート", reason: "相手のニーズを先読みし、細やかな気配りでサポートを提供します。信頼関係構築スキルが非常に重要です。" },
+                { name: "コミュニティ運営・モデレーター", reason: "多様な人々の感情のバランスを取り、建設的な議論や快適な環境を維持する能力を活かせます。場の雰囲気を整えるのが得意です。" },
+                { name: "顧客対応・インサイドセールス", reason: "共感力を持って顧客の潜在的な悩みを引き出し、最適な解決策へと導きます。ホスピタリティが成果に繋がります。" }
+            ],
+            execution: [
+                { name: "Webライティング（タスク型）", reason: "迅速に情報を収集し、定められた期日までに品質を保って大量のタスクを消化する能力を活かせます。即座に行動できることが強みです。" },
+                { name: "代行サービス（家事・買い物など）", reason: "目標（依頼）を確実に完了させる推進力とフットワークの軽さが最大の武器になります。信頼性とスピードが評価されます。" },
+                { name: "データ入力・校正作業", reason: "集中力と持続力で、地道な作業を正確かつ迅速に処理できます。量をこなすことに抵抗がない方に最適です。" }
+            ],
+            strategy: [
+                { name: "ビジネスコンサルティング補助", reason: "物事を俯瞰し、長期的な視点で問題解決のロードマップを作成する能力を活かせます。企業の戦略策定を手助けします。" },
+                { name: "マーケティングプランナー", reason: "限られた予算と時間で最大の効果を出すための計画立案力が求められます。市場分析と戦術立案が得意です。" },
+                { name: "営業戦略・企画書作成", reason: "論理的に相手を納得させ、目標達成に向けた効果的な資料を作成します。提案の成功率を高めることができます。" }
+            ],
+            resilience: [
+                { name: "オンライン教育・メンター", reason: "失敗から立ち直る経験を他者に共有し、精神的なサポートやモチベーション維持の手助けができます。困難を乗り越えた経験が説得力になります。" },
+                { name: "困難な交渉・折衝代行", reason: "ストレス耐性が強く、感情的にならずに粘り強く交渉を進められるため、難易度の高い案件で力を発揮します。" },
+                { name: "投資・資産運用ブログ/情報発信", reason: "市場の変動に一喜一憂せず、冷静な分析と長期的な視点を保てる精神力を活かし、読者に安定した情報を提供できます。" }
+            ]
+        };
+
+        // --- 質問データ (15問に増加) ---
+        // 各質問のスコアは、回答値 (1-5) に乗算されます。
+        const QUESTIONS = [
+            { text: "新しい趣味や学習を始めるとき、すぐに道具や教材を揃えて行動しますか？", scores: { execution: 5, strategy: 1 } }, // 実行力
+            { text: "目の前の課題よりも、5年後の目標を達成するために「今」何をすべきかをよく考えますか？", scores: { strategy: 5, logic: 2 } }, // 戦略
+            { text: "友人の悩みを打ち明けられたとき、まずは「大変だったね」と気持ちに寄り添いますか？", scores: { empathy: 5, creativity: 1 } }, // 共感力
+            { text: "企画を考えるとき、誰も思いつかないような奇抜で非現実的なアイデアを好みますか？", scores: { creativity: 5 } }, // 創造性
+            { text: "複雑な問題に直面したとき、まず情報を分類し、図やフローチャートで整理しますか？", scores: { logic: 5, strategy: 1 } }, // 論理
+            { text: "大きな失敗をしても、「次に活かせるデータが取れた」と冷静に考えられますか？", scores: { resilience: 5 } }, // 回復力
+            { text: "計画通りに進まないことがあっても、目標達成まで諦めずに粘り強く取り組みますか？", scores: { execution: 4, resilience: 2 } }, // 実行力
+            { text: "複数の選択肢がある場合、メリット・デメリットを詳細に比較し、データに基づいて結論を出しますか？", scores: { logic: 4, strategy: 3 } }, // 論理/戦略
+            { text: "人々の集まりで、場の空気を読み、発言のタイミングや内容を慎重に変えることがありますか？", scores: { empathy: 4 } }, // 共感力
+            { text: "退屈な作業でも、より面白くする方法や、効率化する新しいやり方を工夫しますか？", scores: { creativity: 4, execution: 2 } }, // 創造性/実行力
+            { text: "目標に到達できず落ち込んでも、一晩寝れば次の日には「さあ、次！」と切り替えられますか？", scores: { resilience: 4, execution: 1 } }, // 回復力
+            { text: "チームで作業するとき、異なる意見をまとめ、全員が納得できる最適な結論を導けますか？", scores: { empathy: 3, strategy: 3 } }, // 共感力/戦略
+            { text: "ゴールまでの道のりを想像するとき、常に「最短ルート」や「最小コスト」を意識しますか？", scores: { strategy: 4, logic: 2 } }, // 戦略
+            { text: "自分のアイデアが否定されたり、批判されたりしても、感情的にならず建設的に受け止められますか？", scores: { resilience: 3, empathy: 2 } }, // 回復力/共感力
+            { text: "誰もが当たり前だと思っていることに対して、「なぜそうなのか？」と疑問を持つことが多いですか？", scores: { logic: 3, creativity: 3 } }, // 論理/創造性
+        ];
+
+        // 最大スコアを計算 (最大の重み5 × 15問 = 75)
+        const MAX_POSSIBLE_SCORE = 75; 
+
+        let currentQuestionIndex = 0;
+        let talentScores = {}; 
+        let currentAnswer = null; 
+
+        // --- DOM要素 ---
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const startButton = document.getElementById('start-button');
+        const quizContainer = document.getElementById('quiz-container');
+        const nextButton = document.getElementById('next-button');
+        const finishButton = document.getElementById('finish-button');
+        const progressText = document.getElementById('progress-text');
+        const questionHeader = document.getElementById('question-header');
+        const scoreGraphContainer = document.getElementById('score-graph-container');
+        const rankingAdviceContainer = document.getElementById('ranking-advice-container');
+
+        
+        // --- 初期化 ---
+        const initializeScores = () => {
+            Object.keys(TALENTS).forEach(key => talentScores[key] = 0);
+        };
+        initializeScores();
+
+        // --- 診断開始 ---
+        startButton.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            initializeScores(); 
+            currentQuestionIndex = 0;
+            loadQuestion(currentQuestionIndex);
+        });
+
+        // --- 質問の読み込み ---
+        const loadQuestion = (index) => {
+            const q = QUESTIONS[index];
+            quizContainer.innerHTML = ''; 
+            currentAnswer = null; 
+            nextButton.disabled = true;
+            nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            questionHeader.textContent = `質問 ${index + 1}/${QUESTIONS.length}`;
+
+            // 質問文
+            const questionText = document.createElement('p');
+            questionText.classList.add('text-xl', 'font-semibold', 'p-4', 'bg-green-50', 'rounded-lg', 'border-l-4', 'border-green-500', 'shadow-sm');
+            questionText.textContent = q.text;
+            quizContainer.appendChild(questionText);
+
+            // 選択肢 (1から5のスケール)
+            const scaleLabels = ['全くそう思わない', 'あまりそう思わない', 'どちらとも言えない', 'ややそう思う', '強くそう思う'];
+            const scaleContainer = document.createElement('div');
+            scaleContainer.classList.add('flex', 'justify-between', 'gap-1', 'mt-4', 'p-2', 'bg-white', 'rounded-xl', 'shadow');
+            
+            for (let i = 1; i <= 5; i++) {
+                const inputId = `q${index}-score${i}`;
+                
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `question-${index}`;
+                input.id = inputId;
+                input.value = i;
+                input.classList.add('hidden', 'score-input');
+                
+                const label = document.createElement('label');
+                label.setAttribute('for', inputId);
+                label.classList.add('score-label', 'flex-1', 'text-center', 'py-2', 'px-1', 'rounded-lg', 'cursor-pointer', 'text-xs', 'font-medium', 'flex', 'flex-col', 'items-center');
+                
+                // UX改善: 番号と説明を両方表示
+                label.innerHTML = `<span class="text-lg font-bold">${i}</span><span class="mt-1">${scaleLabels[i - 1]}</span>`;
+
+                // イベントリスナー
+                input.addEventListener('change', () => {
+                    currentAnswer = parseInt(input.value);
+                    nextButton.disabled = false;
+                    nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                    if (index === QUESTIONS.length - 1) {
+                        nextButton.classList.add('hidden');
+                        finishButton.classList.remove('hidden');
+                    } else {
+                        nextButton.classList.remove('hidden');
+                        finishButton.classList.add('hidden');
+                    }
+                });
+
+                scaleContainer.appendChild(input);
+                scaleContainer.appendChild(label);
+            }
+            quizContainer.appendChild(scaleContainer);
+            
+            // プログレス表示
+            progressText.textContent = `進行度: ${index + 1}/${QUESTIONS.length}問`;
+        };
+
+        // --- スコア計算と次の質問へ ---
+        const processAnswer = (index) => {
+            const q = QUESTIONS[index];
+            if (currentAnswer === null) return;
+
+            // スコアを計算して加算
+            for (const talent in q.scores) {
+                talentScores[talent] += currentAnswer * q.scores[talent];
+            }
+
+            // 次の質問へ
+            currentQuestionIndex++;
+            if (currentQuestionIndex < QUESTIONS.length) {
+                loadQuestion(currentQuestionIndex);
+            } else {
+                showResult();
+            }
+        };
+
+        nextButton.addEventListener('click', () => processAnswer(currentQuestionIndex));
+        finishButton.addEventListener('click', () => processAnswer(currentQuestionIndex));
+
+        // --- 結果表示 ---
+        const showResult = () => {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            
+            // 1. スコアをランキング順にソート
+            const sortedTalents = Object.keys(talentScores).map(key => {
+                // 各才能の最大可能スコアを計算 (その才能を評価する全質問の重みの合計 * 5)
+                let maxScoreForTalent = 0;
+                QUESTIONS.forEach(q => {
+                    if (q.scores[key]) {
+                        maxScoreForTalent += q.scores[key] * 5;
+                    }
+                });
+                
+                return {
+                    key: key,
+                    name: TALENTS[key].name,
+                    description: TALENTS[key].description,
+                    advice: TALENTS[key].advice,
+                    score: talentScores[key],
+                    max: maxScoreForTalent || MAX_POSSIBLE_SCORE // 重みが設定されていない場合のフォールバック
+                };
+            }).sort((a, b) => b.score - a.score);
+
+
+            const mainTalent = sortedTalents[0];
+
+            // 2. メイン才能の表示
+            document.getElementById('main-talent-title').textContent = mainTalent.name;
+            document.getElementById('main-talent-description').textContent = mainTalent.description;
+
+            // 3. スコアグラフの表示
+            scoreGraphContainer.innerHTML = sortedTalents.map(t => {
+                const percentage = Math.round((t.score / t.max) * 100);
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold">${t.name}</span>
+                            <span class="text-xs font-bold text-green-700">${t.score}点 / ${t.max}点 (${percentage}%)</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-fill" style="width: ${percentage}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 4. 副業ランキングの表示
+            const mainTalentKey = mainTalent.key;
+            const jobRecs = SIDE_JOB_RECOMMENDATIONS[mainTalentKey] || [];
+            const sideJobContainer = document.getElementById('side-job-container');
+            
+            sideJobContainer.innerHTML = jobRecs.map((job, index) => {
+                return `
+                    <div class="p-3 bg-white rounded-lg shadow-sm">
+                        <h5 class="text-lg font-bold text-yellow-600">
+                            ${index + 1}. ${job.name}
+                        </h5>
+                        <p class="text-sm text-gray-700 mt-1">
+                            <span class="font-semibold text-gray-800">【理由】</span> ${job.reason}
+                        </p>
+                    </div>
+                `;
+            }).join('');
+
+            // 5. ランキングと具体的な育成ヒントの表示 (既存のランキング)
+            rankingAdviceContainer.innerHTML = sortedTalents.slice(0, 3).map((t, index) => {
+                const rankColor = index === 0 ? 'text-yellow-600' : (index === 1 ? 'text-gray-500' : 'text-amber-700');
+                const rankText = index === 0 ? '🥇 第1位の卵' : (index === 1 ? '🥈 第2位の卵' : '🥉 第3位の卵');
+                
+                return `
+                    <div class="border-b pb-4 last:border-b-0">
+                        <h4 class="font-bold text-lg mb-2 flex items-center">
+                            <span class="${rankColor} mr-2">${rankText}</span> - ${t.name}
+                        </h4>
+                        <p class="text-gray-600 text-sm">${t.description}</p>
+                        <div class="mt-2 p-3 bg-white border border-green-200 rounded-md">
+                            <p class="font-semibold text-green-700">育成のための具体的なステップ:</p>
+                            <p class="text-sm text-gray-700 leading-relaxed mt-1">${t.advice}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+    </script>
+</body>
+</html>
